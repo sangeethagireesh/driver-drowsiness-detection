@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driver Drowsiness Detection</title>
+    <style>
+        body {
+            background-color: lavender;
+            font-family: 'Arial', sans-serif;
+            color: black;
+            text-align: center;
+            font-weight: bold;
+        }
+        .container {
+            width: 50%;
+            margin: 50px auto;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
+        }
+        input {
+            width: 80%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 2px solid black;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        .btn {
+            background-color: yellow;
+            color: black;
+            padding: 10px 20px;
+            font-size: 18px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            margin: 10px;
+        }
+        .btn:hover {
+            background-color: gold;
+        }
+        .hidden {
+            display: none;
+        }
+        .video-container {
+            margin-top: 20px;
+        }
+        #videoFeed {
+            width: 100%;
+            max-width: 640px;
+            border-radius: 10px;
+            border: 3px solid black;
+        }
+        #status {
+            font-size: 20px;
+            margin-top: 10px;
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Driver Drowsiness Detection</h1>
+
+        <!-- Step 1: User Details -->
+        <div id="userForm">
+            <input type="text" id="username" placeholder="Enter Username"><br>
+            <input type="text" id="vehicleNumber" placeholder="Enter Vehicle Number"><br>
+            <input type="email" id="emergencyEmail" placeholder="Enter Emergency Email"><br>
+            <button class="btn" onclick="showVideoSection()">Next</button>
+        </div>
+
+        <!-- Step 2: Live Video Streaming & Detection Controls -->
+        <div id="detectionSection" class="hidden">
+            <div class="video-container">
+                <h2>Live Camera Feed</h2>
+                <img id="videoFeed" src="" alt="Live Video Feed">
+                <p id="status">Status: Waiting... | EAR: 0.00</p>
+            </div>
+            <div id="buttonControls">
+                <button class="btn" onclick="startDetection()">Start Detection</button>
+                <button class="btn" onclick="stopDetection()">Stop Detection</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let username, vehicleNumber, emergencyEmail;
+        let statusInterval;
+
+        function showVideoSection() {
+            username = document.getElementById('username').value;
+            vehicleNumber = document.getElementById('vehicleNumber').value;
+            emergencyEmail = document.getElementById('emergencyEmail').value;
+
+            if (username && vehicleNumber && emergencyEmail) {
+                document.getElementById('userForm').classList.add('hidden');
+                document.getElementById('detectionSection').classList.remove('hidden');
+                document.getElementById('videoFeed').src = "http://127.0.0.1:5000/video_feed";
+
+                // Start checking status
+                statusInterval = setInterval(fetchDrowsinessStatus, 1000);
+            } else {
+                alert("⚠ Please fill in all fields before proceeding.");
+            }
+        }
+
+        function fetchDrowsinessStatus() {
+            fetch("http://localhost:5000/drowsiness_status")
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error("Server error");
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data && data.state && data.ear !== undefined) {
+                        document.getElementById('status').innerText = `Status: ${data.state} | EAR: ${data.ear}`;
+                    } else {
+                        console.warn("Unexpected data:", data);
+                        document.getElementById('status').innerText = "⚠ Unexpected response.";
+                    }
+                })
+                .catch(error => {
+                    console.error("❌ Error fetching drowsiness status:", error);
+                    document.getElementById('status').innerText = "⚠ Connection lost or server error.";
+                });
+        }
+
+        function startDetection() {
+            fetch("http://localhost:5000/start_detection", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, vehicleNumber, emergencyEmail }),
+            })
+            .then(response => response.json())
+            .then(data => alert(data.message))
+            .catch(error => console.error("❌ Error starting detection:", error));
+        }
+
+        function stopDetection() {
+            clearInterval(statusInterval); // Stop polling
+            fetch("http://localhost:5000/stop_detection", {
+                method: "POST"
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                document.getElementById('status').innerText = "Detection stopped.";
+            })
+            .catch(error => console.error("❌ Error stopping detection:", error));
+        }
+    </script>
+</body>
+</html>

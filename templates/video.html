@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Video Feed</title>
+    <style>
+        body {
+            background-color: lavender;
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            width: 50%;
+            margin: 50px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px gray;
+        }
+        .btn {
+            background-color: yellow;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        img {
+            width: 80%;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px gray;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Live Camera Feed</h1>
+        <img id="video-feed" src="http://127.0.0.1:5000/video_feed">
+        <br><br>
+        <button class="btn" onclick="startDetection()">Start Detection</button>
+        <button class="btn" onclick="stopDetection()">Stop Detection</button>
+    </div>
+
+    <script>
+        function startDetection() {
+            let userData = {
+                username: localStorage.getItem("username"),
+                vehicleNumber: localStorage.getItem("vehicleNumber"),
+                emergencyEmail: localStorage.getItem("emergencyEmail")
+            };
+
+            if (!userData.username || !userData.vehicleNumber || !userData.emergencyEmail) {
+                alert("⚠️ User data missing! Please go back and enter details.");
+                return;
+            }
+
+            fetch("http://127.0.0.1:5000/start_detection", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(userData)
+            })
+            .then(response => response.json())
+            .then(data => alert(data.message))
+            .catch(error => console.error("Error:", error));
+        }
+
+        function stopDetection() {
+            fetch("http://127.0.0.1:5000/stop_detection", { method: "POST" })
+            .then(response => response.json())
+            .then(data => alert(data.message))
+            .catch(error => console.error("Error:", error));
+        }
+    </script>
+</body>
+</html>
